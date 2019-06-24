@@ -19,16 +19,14 @@ This system uses Computer Vision to detect the temperature reading from the disp
 ### Getting Started
     
 * __*Accessing the Raspberry Pi camera with Python and OpenCV*__:
-	A picture of the temperature display is to be taken to be processed. A picture is taken every 10 mins by setting up a cron job and this image is saved into a folder such that it contains last one week data.
+	A picture of the temperature display is to be taken to be processed. A picture is taken every 10 mins by setting up a cron job and this image is saved into a folder such that the folder contains last one week data (it automatically erases after a week).
     
 ###### Saving the image:
 ```python
 # image is the opencv numpy array representation of the picture taken
-gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-blur = cv2.blur(gray, (5, 5))
 cv2.imwrite('/home/pi/Pictures/server/image.jpg', image)
 ```
-
+#### Saving image into a folder 
 A sample image: 
 ![Temp display](image.jpg)
 
