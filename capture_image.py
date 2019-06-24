@@ -24,4 +24,5 @@ if cv2.mean(blur)[0] < 3.0:
 	cv2.imwrite(image_filename, image)
 else:
 	# lights on
+	print("hrllo")
 	pass
