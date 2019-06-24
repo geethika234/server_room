@@ -2,7 +2,7 @@
 
 ## About
 
-This system uses Computer Vision to detect the temperature reading from the display and sends out alerts accordingly. This repository is where you can find the code that does the same.
+This system uses Computer Vision to detect the temperature reading from the display and also reads temperature from temperature sensor and sends out alerts accordingly. This repository is where you can find the code that does the same.
 
 ### Requirements:
 * Python 3.x
@@ -12,28 +12,26 @@ This system uses Computer Vision to detect the temperature reading from the disp
     import cv2
     ```
 * [requirements.txt]()
+* MCP3008
+* LM35 temperature sensor
+* Bread Board and Jumper Wires
 
 ### Getting Started
     
 * __*Accessing the Raspberry Pi camera with Python and OpenCV*__:
-	A picture of the temperature display is to be taken to be processed. A picture is taken every hour by setting up a cron job. This picture is saved to be processed only if the lights aren't turned on in the server room, i.e. only when the environment is dark.
+	A picture of the temperature display is to be taken to be processed. A picture is taken every 10 mins by setting up a cron job and this image is saved into a folder such that it contains last one week data.
     
 ###### Saving the image:
 ```python
 # image is the opencv numpy array representation of the picture taken
 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 blur = cv2.blur(gray, (5, 5))
-if cv2.mean(blur)[0] < 3.0:
-	cv2.imwrite('/home/pi/Pictures/server/image.jpg', image)
-else:
-	# Lights on
-	pass
+cv2.imwrite('/home/pi/Pictures/server/image.jpg', image)
 ```
 
 A sample image: 
-![Temp display](/images/image.jpg)
+![Temp display](image.jpg)
 
-Full Code on Github: [stillpic.py](https://github.com/shwetha1607/Server-temp/blob/Version-1.1/stillpic.py)
 
 * __*Detecting the temperature reading*__:
 	The temperature reading is displayed as seven segment digits. The steps to detect what digit it reads are as follows:
@@ -41,84 +39,48 @@ Full Code on Github: [stillpic.py](https://github.com/shwetha1607/Server-temp/bl
 	- *Extracting the digit ROI*: Contours that are large enough to be a digit(the appropriate width and height constraints requires a few rounds of trial and error) in the image is taken as a digit ROI. A contour is simply a curve joining all the continuous points (along the boundary), having same color or intensity.
 	- *Identify the digits*: Recognizing the actual digits with OpenCV will involve dividing the digit ROI into seven segments. From there, pixel counting on the thresholded image is applied to determine if a given segment is “on” or “off”.
 
-###### Snippets of the code from temp_detect.py depicting above steps:
+#### Temperature Sensor:
+	Connections of lm35,mcp3008 and raspberry pi are:
+    * MCP3008 VDD to Raspberry Pi 3.3V
+    * MCP3008 VREF to Raspberry Pi 3.3V
+    * MCP3008 AGND to Raspberry Pi GND
+    * MCP3008 DGND to Raspberry Pi GND
+    * MCP3008 CLK to Raspberry Pi SCLK
+    * MCP3008 DOUT to Raspberry Pi MISO
+    * MCP3008 DIN to Raspberry Pi MOSI
+    * MCP3008 CS/SHDN to Raspberry Pi CE0
+    * lm35 GND to Raspberry Pi GND	
+    * lm35 vcc to Raspberry Pi 5v
+    * lm35 middle pin to MCP3008 channel 1
+    
 
-```python
-# Detecting bright spots: Convert pixels >110 to white
-thresh = cv2.threshold(image, 110, 255, cv2.THRESH_BINARY)[1]
-```
-
-```python
-# Finding contours and extracting digit ROI
-cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-cnts = imutils.grab_contours(cnts)
-digitCnts = []
+#### Temperature sensor setup:
+   	 Type the follwing commands in the terminal:
+           git clone https://github.com/adafruit/Adafruit_Python_MCP3008.git
+	       cd Adafruit_Python_MCP3008
+	   sudo python setup.py install
+     Now copy tempsens code into a file in folder examples and run that file to get the temperature and to store into a text file
 	
-for c in cnts:
-  # compute the bounding box of the contour
-  (x, y, w, h) = cv2.boundingRect(c)
-  # if the contour is sufficiently large, it must be a digit
-  if (15 <= w <= 45) and (20 <= h <= 55):
-      digitCnts.append(c)
-```
 
-```python
-# Identify the digits
-on = [0] * len(segments)
-
-for (i, ((xs, ys), (xf, yf))) in enumerate(segments):
-  segRoi = roi[ys:yf, xs:xf]  # Get segment ROI
-  no_of_pixels = cv2.countNonZero(segRoi)
-  area = (xf - xs) * (yf - ys)
-  
-  # If the number of white pixels in segment ROI is greater than 50%, the segment is active
-  # If true, on[segment_num] = 1
-  if no_of_pixels / float(area) >= 0.5:
-      on[i] = 1
-
-# digit has the number the seven segment display shows. 
-# DIGITS_LOOKUP is a dictionary that maps a seven element tuple (on) to its digit value.
-digit = DIGITS_LOOKUP.get(tuple(on), -1)
-```
-	
-Full Code on Github: [temp_detect.py](https://github.com/shwetha1607/Server-temp/blob/Version-1.1/temp_detect2.py)
 
 * __*Register*__:
-	A site for users to register by providing a temperature threshold and email/phone number to receive alerts is up and running at [this site](https://roomserver.github.io/Server-Temperature/)
+	A site for users to register by providing a temperature threshold and email/phone number to receive alerts is up and running at [this site](https://roomserver.github.io/server/)
     
 Users can opt-out from or resume receiving notifications via sending a mail with a specific subject and keyword by clicking on the link available on the site. Python's `imaplib` is used to read these received mails.
-The database of users can be updated by running [getsheetdata.py](https://github.com/shwetha1607/Server-temp/blob/Version-1.1/getsheetdata.py). Google Drive and Sheets API and Python's `gspread` library is used to implement this. References to this is linked down below. The status of the user's notification preference( active or inactive) is also checked and updated in the process.
+The database of users can be updated by running the getsheetdata.py code give above. Google Drive and Sheets API and Python's `gspread` library is used to implement this. References to this is linked down below. The status of the user's notification preference( active or inactive) is also checked and updated in the process.
 
-Full code on Github: [getsheetdata.py](https://github.com/shwetha1607/Server-temp/blob/Version-1.1/getsheetdata.py), [receive_mail.py](https://github.com/shwetha1607/Server-temp/blob/Version-1.1/receive_mail.py)
 
 * __*Mailing service for sending out alerts*__: 
 	Python's `smtplib` and `email` libraries are used for sending an email alert along with the image taken as an attachment, as and when the temperature detected exceeds the given acceptable range.
 
 * __*SMS alerts*__:
 	[TextLocal](https://www.textlocal.in/) is the SMS platform used to send out alerts via text messages programmatically. A SMS-bundle is purchased that provides a set of SMS credits that can be used to send messages(whose format follows a registered template created for the need) to any mobile number 24/7. Their [documentation](https://api.textlocal.in/docs/) provides the details and requirements to do so.
-	
-* The credentials for sending out mails and texts are saved as *config.py* in the following format:
-```python
-class TextLocal:
-        def __init__(self):
-                self.apiKey = 'api-key'
-                self.senderID = 'Sender ID'              
 
-class Email:
-        def __init__(self):
-                self.SMTP_SERVER = 'smtp.gmail.com'
-                self.SMTP_PORT = 465
-                self.FROM_ADD = 'user@gmail.com'
-                self.USERNAME = 'user@gmail.com'
-                self.PASSWORD = 'password'
-```
-
-All the above metioned functionalities is encapsulated and run by the driver program: [pidriver.py](https://github.com/shwetha1607/Server-temp/blob/Version-1.1/pidriver.py)
-
+All the above metioned functionalities is encapsulated and run by the driver program: center.py
 
 ### Scheduling tasks
 
-To automate taking a picture and processing the image to detect temperature reading followed by sending alerts if required, are scheduled to execute every hour using Cron. Cron is a tool for configuring scheduled tasks on Unix systems. It is used to schedule commands or scripts to run periodically and at fixed intervals. `final_execute.sh` is the shell script scheduled to run every hour.
+To automate taking a picture and processing the image to detect temperature reading followed by sending alerts if required, are scheduled to execute every 10 minutes using Cron. Cron is a tool for configuring scheduled tasks on Unix systems. It is used to schedule commands or scripts to run periodically and at fixed intervals. `final_execute.sh` is the shell script scheduled to run every 10 minutes.
 
 ###### final_execute.sh
 ```shell
@@ -126,13 +88,22 @@ To automate taking a picture and processing the image to detect temperature read
 
 source ~/.profile
 workon cv
-python /home/pi/stillpic.py
-python /home/pi/Detect_Notify/pidriver.py
+python /home/pi/pic.py
+python /home/pi/Detect_Notify/center.py
+```
+###### final_execute_sensor.sh
+```shell
+!/bin/bash
+
+source ~/.profile
+workon cv
+cd /home/pi/Adafruit_Python_MCP3008/examples
+python /home/pi/Adafruit_Python_MCP3008/examples/tempsens.py
 ```
 
 ### Feedback
 
-For any feedback, queries, fill in this [form](https://docs.google.com/forms/d/e/1FAIpQLSd1Hi3Tuu2ZcA4oDTHY-hGVPQgglfqPrlwuhB64tccOtaXlug/viewform).
+For any feedback, queries, fill in this [form](https://roomserver.github.io/server/feedback.html).
 
 ### References
 
@@ -142,3 +113,4 @@ For any feedback, queries, fill in this [form](https://docs.google.com/forms/d/e
 * [Python's imaplib](https://docs.python.org/3/library/imaplib.html)
 * [Python's smtplib](https://docs.python.org/3/library/smtplib.html)
 * [Python's email](https://docs.python.org/3/library/email.examples.html)
+* [Temperature sensor connections](https://learn.adafruit.com/raspberry-pi-analog-to-digital-converters/mcp3008)
