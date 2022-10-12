@@ -1,0 +1,11 @@
+*/10 * * * * /home/pi/final_execute_new.sh > /home/pi/Trial_Detect/notifout.txt
+*/10 * * * * /home/pi/final_execute_main.sh > /home/pi/Trial_Detect/notifout.txt
+*/2 * * * * /home/pi/pred.sh > /home/pi/Trial_Detect/notifout.txt
+*/2 * * * * /home/pi/sound.sh > /home/pi/Trial_Detect/notifout.txt 
+0 9 * * * /home/pi/sheet_execute.sh > /home/pi/Trial_Detect/sheetout.txt
+0 0 * * 0 /home/pi/week.sh>/home/pi/Trial_Detect/sheetout.txt
+	
+
+
+
+
